@@ -1,22 +1,32 @@
-$webhookUrl = "[https://discord.com/api/webhooks/1511832980744835074/UVIFIzLHMBWkw2f2llrb5UQI43RQ4LpkmdAyBYxH2fiB91N0Jm07QxA_6oD1aTol7Be9](https://discord.com/api/webhooks/1511832980744835074/UVIFIzLHMBWkw2f2llrb5UQI43RQ4LpkmdAyBYxH2fiB91N0Jm07QxA_6oD1aTol7Be9)"
-$telemetryOn = $true
+# Load webhook URL from environment variable — never hardcode secrets
+$webhookUrl = $env:DISCORD_WEBHOOK_URL
+$telemetryOn = $false
+
+if (-not $webhookUrl) {
+    Write-Error "DISCORD_WEBHOOK_URL environment variable is not set. Exiting."
+    exit 1
+}
+
+if ($webhookUrl -notmatch '^https://discord\.com/api/webhooks/\d+/[\w-]+$') {
+    Write-Error "DISCORD_WEBHOOK_URL does not match the expected Discord webhook format. Exiting."
+    exit 1
+}
 
 $payload = @{
-    content = "install started somewhere in the universe"
+    content = "install started"
 }
 
 if ($telemetryOn) {
     $osPlatform = (Get-CimInstance Win32_OperatingSystem).Caption
     $psVersion = $PSVersionTable.PSVersion.ToString()
 
-    # Generates the backticks safely without breaking the chat layout
     $3ticks = [string][char]96 * 3
-    
-    $markdown = "**Midnight Setup Initiated**`n" + 
-                $3ticks + "yaml`n" + 
-                "OS Platform: $osPlatform`n" + 
-                "User Agent: PowerShell/$psVersion`n" + 
-                "Status: Setup cache verified & runtime started.`n" + 
+
+    $markdown = "**Setup Initiated**`n" +
+                $3ticks + "yaml`n" +
+                "OS Platform: $osPlatform`n" +
+                "User Agent: PowerShell/$psVersion`n" +
+                "Status: Setup cache verified & runtime started.`n" +
                 $3ticks
 
     $payload = @{
@@ -28,8 +38,8 @@ $jsonPayload = ConvertTo-Json $payload -Depth 4
 
 try {
     Invoke-RestMethod -Uri $webhookUrl -Method Post -ContentType "application/json" -Body $jsonPayload
-    Write-Host "Webhook sent successfully!" -ForegroundColor Green
+    Write-Host "Webhook sent successfully." -ForegroundColor Green
 }
 catch {
-    Write-Warning "Webhook silent fail: $_"
+    Write-Error "Webhook request failed: $_"
 }
